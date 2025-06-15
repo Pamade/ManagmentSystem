@@ -1,0 +1,27 @@
+@use '../../styles/variables' as v;
+
+.navbar {
+  background-color: v.$primary-color !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+
+  .MuiToolbar-root {
+    padding: v.$spacing-md v.$spacing-xl;
+  }
+
+  .MuiTypography-root {
+    font-weight: 500;
+    
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .MuiButton-root {
+    border-radius: v.$border-radius-md;
+    padding: v.$spacing-sm v.$spacing-md;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+} 

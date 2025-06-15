@@ -1,0 +1,28 @@
+@use '../styles/variables' as v;
+
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px); // Subtract navbar height
+  padding: v.$spacing-xl 0;
+}
+
+.auth-paper {
+  width: 100%;
+  
+  .MuiTabs-root {
+    margin-bottom: v.$spacing-md;
+    border-bottom: 1px solid v.$gray-light;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: v.$spacing-md;
+  }
+
+  .MuiButton-root {
+    margin-top: v.$spacing-lg;
+  }
+} 

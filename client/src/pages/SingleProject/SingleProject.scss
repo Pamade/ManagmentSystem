@@ -1,0 +1,55 @@
+.single-project {
+  padding: 24px 0;
+
+  .project-paper {
+    padding: 24px;
+    
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .project-status {
+      margin: 24px 0;
+      
+      .MuiFormControl-root {
+        min-width: 200px;
+      }
+    }
+
+    .edit-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+
+      .action-buttons {
+        display: flex;
+        gap: 16px;
+        margin-top: 16px;
+      }
+    }
+
+    .participants-section {
+      margin-top: 32px;
+      
+      .MuiList-root {
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        border-radius: 4px;
+        
+        .MuiListItem-root {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+          
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+    }
+  }
+
+  .MuiAlert-root {
+    margin-bottom: 16px;
+  }
+}

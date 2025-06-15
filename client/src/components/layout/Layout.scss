@@ -1,0 +1,20 @@
+@use '../../styles/variables' as v;
+
+.layout {
+  min-height: 100vh;
+  background-color: v.$background-color;
+  display: flex;
+  flex-direction: column;
+
+  .main-content {
+    flex: 1;
+    padding: v.$spacing-xl;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    
+    @media (max-width: v.$breakpoint-md) {
+      padding: v.$spacing-md;
+    }
+  }
+} 
