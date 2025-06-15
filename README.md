@@ -34,7 +34,6 @@ A full-stack project management application built with React (Vite) and Express,
 - TypeScript
 - Material-UI
 - React Router
-- Axios
 - SCSS for styling
 
 ### Backend
