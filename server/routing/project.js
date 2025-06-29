@@ -10,6 +10,7 @@ router.use((req, res, next) => {
   console.log('Project Route accessed:', req.method, req.path);
   next();
 });
+
 router.get('/:id', projectController.getProjectById);
 router.post('/', projectController.createProject);
 router.put('/:id', projectController.updateProject);

@@ -32,11 +32,12 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+    setFieldErrors({});
     try {
       let response;
       if (tab === 0) {
@@ -44,18 +45,21 @@ const Auth = () => {
       } else {
         response = await api.post<AuthResponse>('/auth/register', { name, email, password });
       }
-
       const { token, userId, name: userName } = response.data;
-      
       localStorage.setItem('token', token);
       localStorage.setItem('userId', userId);
       localStorage.setItem('userName', userName);
-      
       window.dispatchEvent(new Event('authStateChanged'));
       navigate('/');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Authentication failed';
-      setError(errorMessage);
+      // Support both general and field-specific errors
+      const backend = err.response?.data;
+      if (backend?.errors && typeof backend.errors === 'object') {
+        setFieldErrors(backend.errors);
+        setError(backend.error || 'Authentication failed');
+      } else {
+        setError(backend?.error || 'Authentication failed');
+      }
     }
   };
 
@@ -65,7 +69,6 @@ const Auth = () => {
         <Typography variant="h4" align="center" gutterBottom>
           Welcome
         </Typography>
-        
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs 
             value={tab} 
@@ -76,9 +79,8 @@ const Auth = () => {
             <Tab label="Register" />
           </Tabs>
         </Box>
-
         <TabPanel value={tab} index={0}>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <TextField
               label="Email"
               type="email"
@@ -87,6 +89,8 @@ const Auth = () => {
               fullWidth
               required
               margin="normal"
+              error={!!fieldErrors.email}
+              helperText={fieldErrors.email}
             />
             <TextField
               label="Password"
@@ -96,6 +100,8 @@ const Auth = () => {
               fullWidth
               required
               margin="normal"
+              error={!!fieldErrors.password}
+              helperText={fieldErrors.password}
             />
             <Button
               type="submit"
@@ -109,9 +115,8 @@ const Auth = () => {
             </Button>
           </form>
         </TabPanel>
-
         <TabPanel value={tab} index={1}>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <TextField
               label="Name"
               value={name}
@@ -119,6 +124,8 @@ const Auth = () => {
               fullWidth
               required
               margin="normal"
+              error={!!fieldErrors.name}
+              helperText={fieldErrors.name}
             />
             <TextField
               label="Email"
@@ -128,6 +135,8 @@ const Auth = () => {
               fullWidth
               required
               margin="normal"
+              error={!!fieldErrors.email}
+              helperText={fieldErrors.email}
             />
             <TextField
               label="Password"
@@ -137,6 +146,8 @@ const Auth = () => {
               fullWidth
               required
               margin="normal"
+              error={!!fieldErrors.password}
+              helperText={fieldErrors.password}
             />
             <Button
               type="submit"
@@ -150,7 +161,6 @@ const Auth = () => {
             </Button>
           </form>
         </TabPanel>
-
         {error && (
           <Typography color="error" align="center" sx={{ mt: 2 }}>
             {error}

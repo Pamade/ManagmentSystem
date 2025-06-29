@@ -13,6 +13,14 @@ exports.createProject = async (req, res) => {
 
     const project = new Project(name, description, status, ownerId);
     const projectId = await project.create();
+
+    // Add projectId to user's projects array
+    const db = getDatabase();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(ownerId) },
+      { $addToSet: { projects: projectId } }
+    );
+
     res.status(201).json({ message: 'Project created', projectId });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create project' });
@@ -23,17 +31,15 @@ exports.getAllProjects = async (req, res) => {
   try {
     const db = getDatabase();
     const projects = db.collection('projects');
-    const userId = req.userId;
+    const userId = req.userId || null;
+    const userObjectId = userId ? new ObjectId(userId) : null;
 
     const projectsList = await projects.aggregate([
       {
         $lookup: {
           from: 'users',
-          let: { owner_id: { $toObjectId: '$ownerId' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$_id', '$$owner_id'] } } },
-            { $project: { name: 1, _id: 0 } }
-          ],
+          localField: 'ownerId',
+          foreignField: '_id',
           as: 'ownerDetails'
         }
       },
@@ -41,13 +47,31 @@ exports.getAllProjects = async (req, res) => {
         $addFields: {
           owner: { $arrayElemAt: ['$ownerDetails', 0] },
           hasAccess: {
-            $or: [
-              { $eq: ['$ownerId', userId] },
-              { $in: [userId, { $ifNull: ['$participants', []] }] }
-            ]
+            $cond: {
+              if: { $eq: [userObjectId, null] },
+              then: false,
+              else: {
+                $or: [
+                  { $eq: ['$ownerId', userObjectId] },
+                  { $in: [userObjectId, { $ifNull: ['$participants', []] }] }
+                ]
+              }
+            }
           },
-          isOwner: { $eq: ['$ownerId', userId] },
-          isParticipant: { $in: [userId, { $ifNull: ['$participants', []] }] }
+          isOwner: {
+            $cond: {
+              if: { $eq: [userObjectId, null] },
+              then: false,
+              else: { $eq: ['$ownerId', userObjectId] }
+            }
+          },
+          isParticipant: {
+            $cond: {
+              if: { $eq: [userObjectId, null] },
+              then: false,
+              else: { $in: [userObjectId, { $ifNull: ['$participants', []] }] }
+            }
+          }
         }
       },
       {
@@ -143,23 +167,32 @@ exports.getProjectById = async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Check if user has access (owner or participant)
-    const hasAccess = project.ownerId === userId || (project.participants || []).includes(userId);
+    let userObjectId;
+    try {
+      userObjectId = new ObjectId(userId);
+    } catch (e) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    
+    const isOwner = project.ownerId && project.ownerId.equals(userObjectId);
+    const isParticipant = (project.participants || []).some(pid => pid && pid.equals && pid.equals(userObjectId));
+    const hasAccess = isOwner || isParticipant;
     if (!hasAccess) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Enhance project with access information
+    
     const enhancedProject = {
       ...project,
       hasAccess: true,
-      isOwner: project.ownerId === userId,
-      isParticipant: (project.participants || []).includes(userId)
+      isOwner,
+      isParticipant
     };
 
     res.json(enhancedProject);
   } catch (error) {
-    if (error.message.includes('ObjectId')) {
+    if (error.message && error.message.includes('ObjectId')) {
       return res.status(400).json({ error: 'Invalid project ID format' });
     }
     console.error('Error in getProjectById:', error);
@@ -170,18 +203,25 @@ exports.getProjectById = async (req, res) => {
 exports.updateProject = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.userId;
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
 
     const project = await Project.findById(new ObjectId(id));
-    
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (project.ownerId !== req.userId) {
+    let userObjectId;
+    try {
+      userObjectId = new ObjectId(userId);
+    } catch (e) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!project.ownerId.equals(userObjectId)) {
       return res.status(403).json({ error: 'Only the project owner can update project details' });
     }
 
@@ -190,13 +230,19 @@ exports.updateProject = async (req, res) => {
     delete updateData.participants;
     delete updateData._id;
 
-    const updated = await Project.update(new ObjectId(id), updateData);
-    if (updated) {
-      res.json({ message: 'Project updated successfully' });
-    } else {
-      res.status(400).json({ error: 'Failed to update project' });
+    try {
+      const updated = await Project.update(new ObjectId(id), updateData);
+      if (updated) {
+        res.json({ message: 'Project updated successfully' });
+      } else {
+        res.status(400).json({ error: 'Failed to update project' });
+      }
+    } catch (err) {
+      console.error('Error updating project:', err);
+      res.status(500).json({ error: 'Failed to update project' });
     }
   } catch (error) {
+    console.error('Error in updateProject:', error);
     res.status(500).json({ error: 'Failed to update project' });
   }
 };
@@ -240,9 +286,10 @@ exports.addParticipant = async (req, res) => {
   try {
     const { id } = req.params;
     const { userId } = req.body;
-    
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid project ID' });
+    const requestUserId = req.userId;
+
+    if (!ObjectId.isValid(id) || !ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid project or user ID' });
     }
 
     const project = await Project.findById(new ObjectId(id));
@@ -250,13 +297,26 @@ exports.addParticipant = async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (project.ownerId !== req.userId) {
-      return res.status(403).json({ error: 'Only the project owner can add participants' });
+    let requestUserObjectId;
+    try {
+      requestUserObjectId = new ObjectId(requestUserId);
+    } catch (e) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
-    await Project.addParticipant(new ObjectId(id), userId);
-    res.json({ message: 'Participant added successfully' });
+    if (!project.ownerId.equals(requestUserObjectId)) {
+      return res.status(403).json({ error: 'Only the project owner can update project details' });
+    }
+
+    try {
+      await Project.addParticipant(new ObjectId(id), userId);
+      res.json({ message: 'Participant added successfully' });
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      res.status(500).json({ error: 'Failed to add participant' });
+    }
   } catch (error) {
+    console.error('Error in addParticipant:', error);
     res.status(500).json({ error: 'Failed to add participant' });
   }
 };
@@ -274,8 +334,8 @@ exports.removeParticipant = async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (project.ownerId !== req.userId) {
-      return res.status(403).json({ error: 'Only the project owner can remove participants' });
+    if (!project.ownerId.equals(userObjectId)) {
+      return res.status(403).json({ error: 'Only the project owner can update project details' });
     }
 
     await Project.removeParticipant(new ObjectId(id), userId);
@@ -298,9 +358,9 @@ exports.updateStatus = async (req, res) => {
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
     }
-
-    if (project.ownerId !== req.userId) {
-      return res.status(403).json({ error: 'Only the project owner can update status' });
+    console.log('Project ownerId:', project.ownerId, 'Request userId:', req.userId);
+    if (!project.ownerId.equals(userObjectId)) {
+      return res.status(403).json({ error: 'Only the project owner can update project details' });
     }
 
     await Project.updateStatus(new ObjectId(id), status);
@@ -324,8 +384,8 @@ exports.addInfo = async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (project.ownerId !== req.userId) {
-      return res.status(403).json({ error: 'Only the project owner can update info' });
+    if (!project.ownerId.equals(userObjectId)) {
+      return res.status(403).json({ error: 'Only the project owner can update project details' });
     }
 
     await Project.addInfo(new ObjectId(id), info);

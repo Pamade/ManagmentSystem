@@ -45,6 +45,7 @@ const Home = () => {
   }, []);
 
   const ProjectList = ({ groups, title }: { groups: ProjectGroup[], title: string }) => {
+    console.log('Rendering ProjectList with groups:', groups);
     if (!groups || groups.length === 0) return null;
 
     return (
@@ -139,6 +140,11 @@ const Home = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      {allProjects.length === 0 && (
+        <Typography variant="h6" align="center" sx={{ mt: 3 }}>
+          No projects found. Create account and start adding projects.  
+        </Typography>
+      )}
       <ProjectList groups={myProjects} title="My Projects" />
       <ProjectList groups={allProjects} title="Other Projects" />
     </Box>

@@ -185,121 +185,165 @@ const SingleProject = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       
       <Paper elevation={3} className="project-paper">
-        <Box className="project-header">
-          <Box>
-            <Typography variant="h4" component="h1">{project.name}</Typography>
-            <Typography variant="subtitle1" color="textSecondary" gutterBottom>
-              {project.description}
-            </Typography>
-          </Box>
-          {project.isOwner && (
-            <IconButton onClick={() => setIsEditing(true)} color="primary">
-              <EditIcon />
-            </IconButton>
-          )}
-        </Box>
-
-        <Box className="project-status" sx={{ my: 3 }}>
-          <FormControl>
-            <InputLabel id="status-label">Status</InputLabel>
-            <Select
-              labelId="status-label"
-              value={project.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              disabled={!project.isOwner}
-            >
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-
-        <Box className="participants-section">
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Participants</Typography>
-            {project.isOwner && (
+        {isEditing ? (
+          <Box className="edit-form">
+            <TextField
+              fullWidth
+              label="Project Name"
+              value={editedProject.name || ''}
+              onChange={(e) => setEditedProject(prev => ({ ...prev, name: e.target.value }))}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              multiline
+              rows={4}
+              value={editedProject.description || ''}
+              onChange={(e) => setEditedProject(prev => ({ ...prev, description: e.target.value }))}
+              margin="normal"
+            />
+            <Box className="action-buttons">
               <Button
-                startIcon={<PersonAddIcon />}
-                onClick={() => setAddUserDialogOpen(true)}
-                variant="outlined"
+                variant="contained"
+                color="primary"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveChanges}
               >
-                Add Participant
+                Save Changes
               </Button>
-            )}
-          </Box>
-
-          {participants.length > 0 ? (
-            <List>
-              {participants.map((participant) => (
-                <ListItem key={participant._id}>
-                  <ListItemText
-                    primary={participant.name}
-                    secondary={
-                      <Box component="span" sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                        {participant.email}
-                        <Chip 
-                          size="small" 
-                          label={participant.isOwner ? "Owner" : "Participant"}
-                          color={participant.isOwner ? "primary" : "default"}
-                        />
-                      </Box>
-                    }
-                  />
-                  {project.isOwner && !participant.isOwner && (
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleRemoveParticipant(participant._id)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  )}
-                </ListItem>
-              ))}
-            </List>
-          ) : (
-            <Typography color="textSecondary">No participants added yet.</Typography>
-          )}
-        </Box>
-
-        <Dialog open={addUserDialogOpen} onClose={() => setAddUserDialogOpen(false)}>
-          <DialogTitle>Add Participant</DialogTitle>
-          <DialogContent>
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Select User</InputLabel>
-              <Select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                fullWidth
+              <Button
+                variant="outlined"
+                startIcon={<CancelIcon />}
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditedProject(project);
+                }}
               >
-                {availableUsers.map((user) => (
-                  <MenuItem key={user._id} value={user._id}>
-                    {user.name} ({user.email})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setAddUserDialogOpen(false);
-              setSelectedUserId('');
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAddParticipant} 
-              color="primary" 
-              disabled={!selectedUserId}
-              variant="contained"
-            >
-              Add
-            </Button>
-          </DialogActions>
-        </Dialog>
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        ) : (
+          <>
+            <Box className="project-header">
+              <Box>
+                <Typography variant="h4" component="h1">{project.name}</Typography>
+                <Typography variant="subtitle1" color="textSecondary" gutterBottom>
+                  {project.description}
+                </Typography>
+              </Box>
+              {project.isOwner && (
+                <IconButton onClick={() => setIsEditing(true)} color="primary">
+                  <EditIcon />
+                </IconButton>
+              )}
+            </Box>
+
+            <Box className="project-status" sx={{ my: 3 }}>
+              <FormControl>
+                <InputLabel id="status-label">Status</InputLabel>
+                <Select
+                  labelId="status-label"
+                  value={project.status}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  disabled={!project.isOwner}
+                >
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            <Box className="participants-section">
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6">Participants</Typography>
+                {project.isOwner && (
+                  <Button
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => setAddUserDialogOpen(true)}
+                    variant="outlined"
+                  >
+                    Add Participant
+                  </Button>
+                )}
+              </Box>
+
+              {participants.length > 0 ? (
+                <List>
+                  {participants.map((participant) => (
+                    <ListItem key={participant._id}>
+                      <ListItemText
+                        primary={participant.name}
+                        secondary={
+                          <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            {participant.email}
+                            <Chip 
+                              size="small" 
+                              label={participant.isOwner ? "Owner" : "Participant"}
+                              color={participant.isOwner ? "primary" : "default"}
+                              component="span"
+                            />
+                          </span>
+                        }
+                      />
+                      {project.isOwner && !participant.isOwner && (
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleRemoveParticipant(participant._id)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      )}
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="textSecondary">No participants added yet.</Typography>
+              )}
+            </Box>
+
+            <Dialog open={addUserDialogOpen} onClose={() => setAddUserDialogOpen(false)}>
+              <DialogTitle>Add Participant</DialogTitle>
+              <DialogContent>
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel>Select User</InputLabel>
+                  <Select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    fullWidth
+                  >
+                    {availableUsers.map((user) => (
+                      <MenuItem key={user._id} value={user._id}>
+                        {user.name} ({user.email})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => {
+                  setAddUserDialogOpen(false);
+                  setSelectedUserId('');
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAddParticipant} 
+                  color="primary" 
+                  disabled={!selectedUserId}
+                  variant="contained"
+                >
+                  Add
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </>
+        )}
       </Paper>
     </Container>
   );

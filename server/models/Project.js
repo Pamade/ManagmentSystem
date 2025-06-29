@@ -16,13 +16,14 @@ class Project {
   async create() {
     const db = getDatabase();
     const projects = db.collection(COLLECTION_NAME);
+    const ownerObjectId = typeof this.ownerId === 'string' ? new ObjectId(this.ownerId) : this.ownerId;
     const result = await projects.insertOne({
       name: this.name,
       description: this.description,
       status: this.status,
-      ownerId: this.ownerId,
+      ownerId: ownerObjectId,
       info: this.info,
-      participants: [this.ownerId], // Add owner as first participant
+      participants: [], // Do NOT add owner as participant
       created_at: new Date()
     });
     return result.insertedId;
@@ -45,51 +46,41 @@ class Project {
   }
 
   static async addParticipant(projectId, userId) {
-    try {
-      const db = getDatabase();
-      const projects = db.collection(COLLECTION_NAME);
-
-      const result = await projects.updateOne(
-        { _id: new ObjectId(projectId) },
-        { 
-          $addToSet: { participants: userId },
-          $set: { updated_at: new Date() }
-        }
-      );
-
-      return result.modifiedCount > 0;
-    } catch (error) {
-      throw new Error('Failed to add participant');
+    const db = getDatabase();
+    const projects = db.collection(COLLECTION_NAME);
+    const project = await projects.findOne({ _id: new ObjectId(projectId) });
+    if (!project) throw new Error('Project not found');
+    // Prevent adding owner as participant
+    if (project.ownerId.equals(new ObjectId(userId))) {
+      throw new Error('Owner cannot be a participant');
     }
+    const result = await projects.updateOne(
+      { _id: new ObjectId(projectId) },
+      {
+        $addToSet: { participants: new ObjectId(userId) },
+        $set: { updated_at: new Date() }
+      }
+    );
+    return result.modifiedCount > 0;
   }
 
   static async removeParticipant(projectId, userId) {
-    try {
-      const db = getDatabase();
-      const projects = db.collection(COLLECTION_NAME);
-
-      const project = await projects.findOne({ _id: new ObjectId(projectId) });
-      if (!project) {
-        throw new Error('Project not found');
-      }
-
-      // Cannot remove the owner from participants
-      if (project.ownerId === userId) {
-        throw new Error('Cannot remove project owner from participants');
-      }
-
-      const result = await projects.updateOne(
-        { _id: new ObjectId(projectId) },
-        { 
-          $pull: { participants: userId },
-          $set: { updated_at: new Date() }
-        }
-      );
-
-      return result.modifiedCount > 0;
-    } catch (error) {
-      throw new Error('Failed to remove participant');
+    const db = getDatabase();
+    const projects = db.collection(COLLECTION_NAME);
+    const project = await projects.findOne({ _id: new ObjectId(projectId) });
+    if (!project) throw new Error('Project not found');
+    // Prevent removing owner from participants (should never be there)
+    if (project.ownerId.equals(new ObjectId(userId))) {
+      throw new Error('Cannot remove owner from participants');
     }
+    const result = await projects.updateOne(
+      { _id: new ObjectId(projectId) },
+      {
+        $pull: { participants: new ObjectId(userId) },
+        $set: { updated_at: new Date() }
+      }
+    );
+    return result.modifiedCount > 0;
   }
 
   static async update(id, updateData) {
@@ -159,8 +150,10 @@ class Project {
     }
 
     const participantIds = project.participants || [];
+    // Exclude owner from available users
+    const excludeIds = [project.ownerId, ...participantIds];
     const availableUsers = await users.find({
-      _id: { $nin: participantIds.map(id => new ObjectId(id)) }
+      _id: { $nin: excludeIds }
     }).toArray();
 
     return {
