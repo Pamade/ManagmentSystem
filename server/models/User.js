@@ -16,18 +16,15 @@ class User {
             const db = getDatabase();
             const usersCollection = db.collection(COLLECTION_NAME);
 
-            
             const existingUser = await usersCollection.findOne({ email: this.email });
             
             if (existingUser) {
                 throw new Error('User with this email already exists');
             }
 
-            
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(this.password, salt);
 
-            
             const result = await usersCollection.insertOne({
                 name: this.name,
                 email: this.email,
