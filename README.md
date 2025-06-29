@@ -95,7 +95,8 @@ npm install
 Create a \`.env\` file in the server directory:
 \`\`\`env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/management-system
+DB_USER=your_username_mongodb
+DB_PASS=your_password_mongodb
 JWT_SECRET=your-secret-key
 \`\`\`
 
