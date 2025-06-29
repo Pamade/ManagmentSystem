@@ -92,15 +92,16 @@ npm install
 
 3. Set up environment variables:
 
-Create a \`.env\` file in the server directory:
-\`\`\`env
-PORT=5000
-DB_USER=your user
-DB_PASS=your pass
-DB_USER=your_username_mongodb
-DB_PASS=your_password_mongodb
-JWT_SECRET=your-secret-key
-\`\`\`
+Create a .env file in the server directory:
+
+- PORT=5000
+- DB_USER=your user
+- DB_PASS=your pass
+- JWT_SECRET=your-secret-key
+
+  Create a .env file in the client directory:
+  - VITE_API_URL=http://localhost:5173
+
 
 ### Running the Application
 
