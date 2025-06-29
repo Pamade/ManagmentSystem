@@ -97,6 +97,8 @@ Create a \`.env\` file in the server directory:
 PORT=5000
 DB_USER=your user
 DB_PASS=your pass
+DB_USER=your_username_mongodb
+DB_PASS=your_password_mongodb
 JWT_SECRET=your-secret-key
 \`\`\`
 
