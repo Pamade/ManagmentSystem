@@ -324,23 +324,31 @@ exports.addParticipant = async (req, res) => {
 exports.removeParticipant = async (req, res) => {
   try {
     const { id, userId } = req.params;
-    
+    let requestUserObjectId;
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ error: 'Invalid project ID' });
     }
+      try {
+      requestUserObjectId = new ObjectId(req.userId);
+    } catch (e) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
 
     const project = await Project.findById(new ObjectId(id));
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
     }
-
-    if (!project.ownerId.equals(userObjectId)) {
+    // console.log('Project ownerId:', project.ownerId, 'User ID:', userId);
+    if (!project.ownerId.equals(requestUserObjectId)) {
       return res.status(403).json({ error: 'Only the project owner can update project details' });
     }
 
     await Project.removeParticipant(new ObjectId(id), userId);
     res.json({ message: 'Participant removed successfully' });
   } catch (error) {
+    console.log('Error in removeParticipant:', error);
+    
     res.status(500).json({ error: 'Failed to remove participant' });
   }
 };

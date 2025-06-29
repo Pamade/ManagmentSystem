@@ -140,9 +140,9 @@ const Home = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {allProjects.length === 0 && (
+      {allProjects.length === 0 && myProjects.length === 0 && (
         <Typography variant="h6" align="center" sx={{ mt: 3 }}>
-          No projects found. Create account and start adding projects.  
+          No projects found
         </Typography>
       )}
       <ProjectList groups={myProjects} title="My Projects" />
