@@ -95,8 +95,7 @@ npm install
 Create a .env file in the server directory:
 
 - PORT=5000
-- DB_USER=your user
-- DB_PASS=your pass
+- URI=your_uri (mongodb+srv://login:pass@cluster0.dutxhez.mongodb.net/projekt_studia?retryWrites=true&w=majority)
 - JWT_SECRET=your-secret-key
 
   Create a .env file in the client directory:
