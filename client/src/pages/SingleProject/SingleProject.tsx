@@ -45,6 +45,7 @@ interface Project {
   created_at: string;
   hasAccess: boolean;
   isOwner: boolean;
+  progress?: string[];
 }
 
 interface User {
@@ -69,6 +70,9 @@ const SingleProject = () => {
   const [editedProject, setEditedProject] = useState<Partial<Project>>({});
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [progress, setProgress] = useState<string[]>([]);
+  const [newProgress, setNewProgress] = useState('');
+  const [progressError, setProgressError] = useState('');
 
   const fetchProjectData = async () => {
     if (!id) return;
@@ -77,21 +81,21 @@ const SingleProject = () => {
       setLoading(true);
       setError('');
 
-      // Fetch project details
       const projectData = await projectApi.getById(id);
       setProject(projectData);
       setEditedProject(projectData);
+      setProgress(projectData.progress || []);
 
       if (!projectData.hasAccess) {
         setError('You do not have access to this project');
         return;
       }
 
-      // Fetch participants
+      
       const { participants: participantsData } = await projectApi.getParticipants(id);
       setParticipants(participantsData);
 
-      // Only fetch available users if user is the owner
+      
       if (projectData.isOwner) {
         const { availableUsers: availableUsersData } = await projectApi.getAvailableUsers(id);
         setAvailableUsers(availableUsersData);
@@ -151,6 +155,21 @@ const SingleProject = () => {
       await fetchProjectData(); // Refresh data
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to remove participant');
+    }
+  };
+
+  const handleAddProgress = async () => {
+    setProgressError('');
+    if (!newProgress.trim()) {
+      setProgressError('Progress cannot be empty');
+      return;
+    }
+    try {
+      await projectApi.addProgress(id!, newProgress);
+      setNewProgress('');
+      await fetchProjectData();
+    } catch (err: any) {
+      setProgressError(err.response?.data?.error || 'Failed to add progress');
     }
   };
 
@@ -254,6 +273,42 @@ const SingleProject = () => {
                   <MenuItem value="completed">Completed</MenuItem>
                 </Select>
               </FormControl>
+            </Box>
+
+            {/* Progress Section */}
+            <Box className="progress-section" sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>Progress</Typography>
+              {progress.length > 0 ? (
+                <List sx={{ mb: 2 }}>
+                  {progress.map((entry, idx) => (
+                    <ListItem key={idx}>
+                      <ListItemText primary={entry} />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="textSecondary" sx={{ mb: 2 }}>No progress yet.</Typography>
+              )}
+              {project?.hasAccess && (
+                <Box display="flex" gap={2} alignItems="center">
+                  <TextField
+                    label="Add Progress"
+                    value={newProgress}
+                    onChange={e => setNewProgress(e.target.value)}
+                    size="small"
+                    error={!!progressError}
+                    helperText={progressError}
+                    sx={{ flex: 1 }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleAddProgress}
+                    disabled={!newProgress.trim()}
+                  >
+                    Add
+                  </Button>
+                </Box>
+              )}
             </Box>
 
             <Box className="participants-section">

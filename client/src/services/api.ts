@@ -25,7 +25,9 @@ export const projectApi = {
   getParticipants: (id: string) => api.get(`/projects/${id}/participants`).then(res => res.data),
   getAvailableUsers: (id: string) => api.get(`/projects/${id}/available-users`).then(res => res.data),
   addParticipant: (id: string, userId: string) => api.post(`/projects/${id}/participants`, { userId }).then(res => res.data),
-  removeParticipant: (id: string, userId: string) => api.delete(`/projects/${id}/participants/${userId}`).then(res => res.data)
+  removeParticipant: (id: string, userId: string) => api.delete(`/projects/${id}/participants/${userId}`).then(res => res.data),
+  addProgress: (id: string, progressText: string) =>
+    api.patch(`/projects/${id}/progress`, { progressText }).then(res => res.data)
 };
 
 export default api;

@@ -20,5 +20,6 @@ router.post('/:id/participants', projectController.addParticipant);
 router.delete('/:id/participants/:userId', projectController.removeParticipant);
 router.patch('/:id/status', projectController.updateStatus);
 router.patch('/:id/info', projectController.addInfo);
+router.patch('/:id/progress', projectController.addProgress);
 
 module.exports = router;

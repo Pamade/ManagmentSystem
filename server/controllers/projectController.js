@@ -394,3 +394,34 @@ exports.addInfo = async (req, res) => {
     res.status(500).json({ error: 'Failed to add info' });
   }
 };
+
+
+exports.addProgress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { progressText } = req.body;
+    const userId = req.userId;
+
+    if (!progressText || typeof progressText !== 'string') {
+      return res.status(400).json({ error: 'Progress text is required' });
+    }
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+    try {
+      const added = await Project.addProgress(id, userId, progressText);
+      if (added) {
+        res.json({ message: 'Progress added successfully' });
+      } else {
+        res.status(400).json({ error: 'Failed to add progress' });
+      }
+    } catch (err) {
+      if (err.message === 'Access denied') {
+        return res.status(403).json({ error: 'Only project owner or participant can add progress' });
+      }
+      res.status(500).json({ error: err.message || 'Failed to add progress' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add progress' });
+  }
+};

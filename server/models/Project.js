@@ -11,6 +11,7 @@ class Project {
     this.ownerId = ownerId;
     this.info = info || {};
     this.participants = []; // Initialize empty participants array
+    this.progress = []; // Initialize empty progress array
   }
 
   async create() {
@@ -24,6 +25,7 @@ class Project {
       ownerId: ownerObjectId,
       info: this.info,
       participants: [], // Do NOT add owner as participant
+      progress: [], // Add progress array
       created_at: new Date()
     });
     return result.insertedId;
@@ -177,6 +179,28 @@ class Project {
     } catch (error) {
       return false;
     }
+  }
+
+  // Add a progress entry (string) by owner or participant
+  static async addProgress(projectId, userId, progressText) {
+    const db = getDatabase();
+    const projects = db.collection(COLLECTION_NAME);
+    const project = await projects.findOne({ _id: new ObjectId(projectId) });
+    if (!project) throw new Error('Project not found');
+    // Check if user is owner or participant
+    const isOwner = project.ownerId.equals(new ObjectId(userId));
+    const isParticipant = (project.participants || []).some(id => new ObjectId(id).equals(new ObjectId(userId)));
+    if (!isOwner && !isParticipant) {
+      throw new Error('Access denied');
+    }
+    const result = await projects.updateOne(
+      { _id: new ObjectId(projectId) },
+      {
+        $push: { progress: progressText },
+        $set: { updated_at: new Date() }
+      }
+    );
+    return result.modifiedCount > 0;
   }
 }
 
